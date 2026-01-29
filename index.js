@@ -1,9 +1,9 @@
 require("dotenv").config();
 
 const express = require("express");
-const nodemailer = require("nodemailer");
 const mysql = require("mysql2/promise");
 const cors = require("cors");
+const { Resend } = require("resend");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,26 +12,15 @@ app.use(cors());
 app.use(express.json());
 
 // --------------------
+// RESEND SETUP
+// --------------------
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// --------------------
 // TEMP LOGIN CODE STORE
 // --------------------
 const loginCodes = {};
 // { email: { code, expiresAt } }
-
-// --------------------
-// EMAIL SETUP (GMAIL SMTP – RENDER SAFE)
-// --------------------
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10 * 1000,
-  greetingTimeout: 10 * 1000,
-  socketTimeout: 10 * 1000,
-});
 
 // --------------------
 // DATABASE CONNECTION
@@ -84,8 +73,8 @@ app.post("/auth/start", async (req, res) => {
   loginCodes[email] = { code, expiresAt };
 
   try {
-    await transporter.sendMail({
-      from: `"Novel Diary" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: "Novel Diary <onboarding@resend.dev>",
       to: email,
       subject: "Your login code",
       text: `Your login code is: ${code}\n\nThis code expires in 10 minutes.`,

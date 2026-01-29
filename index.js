@@ -8,35 +8,33 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 // --------------------
 // TEMP LOGIN CODE STORE
 // --------------------
-const loginCodes = {}; 
+const loginCodes = {};
 // { email: { code, expiresAt } }
 
 // --------------------
-// EMAIL SETUP
+// EMAIL SETUP (GMAIL SMTP – RENDER SAFE)
 // --------------------
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // important
+  secure: false, // STARTTLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  connectionTimeout: 10 * 1000, // 10 seconds
+  connectionTimeout: 10 * 1000,
   greetingTimeout: 10 * 1000,
   socketTimeout: 10 * 1000,
 });
 
-
 // --------------------
 // DATABASE CONNECTION
-// (public URL locally, private vars on Render)
 // --------------------
 const db = mysql.createPool(
   process.env.MYSQL_PUBLIC_URL
@@ -58,7 +56,7 @@ app.get("/health", (req, res) => {
 });
 
 // --------------------
-// DB TEST (SAFE)
+// DB TEST
 // --------------------
 app.get("/db-test", async (req, res) => {
   try {
@@ -95,7 +93,7 @@ app.post("/auth/start", async (req, res) => {
 
     res.json({ message: "Login code sent to email" });
   } catch (err) {
-    console.error(err);
+    console.error("Email error:", err);
     res.status(500).json({ error: "Failed to send email" });
   }
 });
@@ -124,7 +122,6 @@ app.post("/auth/verify", async (req, res) => {
   delete loginCodes[email];
 
   try {
-    // Check if user exists
     const [rows] = await db.query(
       "SELECT id FROM users WHERE email = ?",
       [email]
@@ -133,7 +130,6 @@ app.post("/auth/verify", async (req, res) => {
     let userId;
 
     if (rows.length === 0) {
-      // Create new user
       const [result] = await db.query(
         "INSERT INTO users (email) VALUES (?)",
         [email]
@@ -145,7 +141,7 @@ app.post("/auth/verify", async (req, res) => {
 
     res.json({
       message: "Login successful",
-      userId: userId,
+      userId,
     });
   } catch (err) {
     console.error(err);

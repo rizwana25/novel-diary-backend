@@ -21,12 +21,18 @@ const loginCodes = {};
 // EMAIL SETUP
 // --------------------
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // important
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 10 * 1000, // 10 seconds
+  greetingTimeout: 10 * 1000,
+  socketTimeout: 10 * 1000,
 });
+
 
 // --------------------
 // DATABASE CONNECTION

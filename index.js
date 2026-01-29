@@ -4,7 +4,6 @@ const express = require("express");
 const nodemailer = require("nodemailer");
 const mysql = require("mysql2/promise");
 const cors = require("cors");
-git
 
 const app = express();
 const PORT = process.env.PORT || 3000;

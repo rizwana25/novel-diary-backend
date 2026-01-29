@@ -1,6 +1,8 @@
 require("dotenv").config();
+
 const express = require("express");
 const nodemailer = require("nodemailer");
+const mysql = require("mysql2/promise");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,10 +27,39 @@ const transporter = nodemailer.createTransport({
 });
 
 // --------------------
+// DATABASE CONNECTION
+// (public URL locally, private vars on Render)
+// --------------------
+const db = mysql.createPool(
+  process.env.MYSQL_PUBLIC_URL
+    ? process.env.MYSQL_PUBLIC_URL
+    : {
+        host: process.env.MYSQLHOST,
+        port: process.env.MYSQLPORT,
+        user: process.env.MYSQLUSER,
+        password: process.env.MYSQLPASSWORD,
+        database: process.env.MYSQLDATABASE,
+      }
+);
+
+// --------------------
 // HEALTH CHECK
 // --------------------
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+// --------------------
+// DB TEST (SAFE)
+// --------------------
+app.get("/db-test", async (req, res) => {
+  try {
+    await db.query("SELECT 1");
+    res.json({ database: "connected" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ database: "error" });
+  }
 });
 
 // --------------------
@@ -62,9 +93,9 @@ app.post("/auth/start", async (req, res) => {
 });
 
 // --------------------
-// VERIFY LOGIN CODE
+// VERIFY LOGIN + CREATE USER
 // --------------------
-app.post("/auth/verify", (req, res) => {
+app.post("/auth/verify", async (req, res) => {
   const { email, code } = req.body;
 
   const record = loginCodes[email];
@@ -84,12 +115,39 @@ app.post("/auth/verify", (req, res) => {
 
   delete loginCodes[email];
 
-  res.json({
-    message: "Login successful",
-    userId: email,
-  });
+  try {
+    // Check if user exists
+    const [rows] = await db.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
+
+    let userId;
+
+    if (rows.length === 0) {
+      // Create new user
+      const [result] = await db.query(
+        "INSERT INTO users (email) VALUES (?)",
+        [email]
+      );
+      userId = result.insertId;
+    } else {
+      userId = rows[0].id;
+    }
+
+    res.json({
+      message: "Login successful",
+      userId: userId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error during login" });
+  }
 });
 
+// --------------------
+// START SERVER
+// --------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

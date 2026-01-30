@@ -1,75 +1,134 @@
-import express from "express";
-import mysql from "mysql2/promise";
-import cors from "cors";
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+const mysql = require("mysql2/promise");
 
 const app = express();
+const PORT = process.env.PORT || 10000;
+
 app.use(cors());
 app.use(express.json());
 
-const db = await mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
+/* --------------------
+   DATABASE CONNECTION
+-------------------- */
+
+const db = mysql.createPool({
+  host: process.env.MYSQLHOST,
+  port: process.env.MYSQLPORT,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  waitForConnections: true,
+  connectionLimit: 10,
 });
 
-// --------------------
-// INIT / GET USER
-// --------------------
+/* --------------------
+   HEALTH CHECK
+-------------------- */
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+/* --------------------
+   USER INIT (DEVICE BASED)
+   Called when "Start Writing" is pressed
+-------------------- */
+
 app.post("/users/init", async (req, res) => {
-  const { deviceId } = req.body;
-  if (!deviceId) return res.status(400).json({ error: "deviceId required" });
+  try {
+    const { deviceId } = req.body;
 
-  const [rows] = await db.query(
-    "SELECT id FROM users WHERE device_id = ?",
-    [deviceId]
-  );
+    if (!deviceId) {
+      return res.status(400).json({ error: "deviceId required" });
+    }
 
-  if (rows.length > 0) {
-    return res.json({ userId: rows[0].id });
+    // check existing user
+    const [rows] = await db.query(
+      "SELECT id FROM users WHERE device_id = ?",
+      [deviceId]
+    );
+
+    let userId;
+
+    if (rows.length === 0) {
+      // new user
+      const [result] = await db.query(
+        "INSERT INTO users (device_id) VALUES (?)",
+        [deviceId]
+      );
+      userId = result.insertId;
+    } else {
+      // existing user
+      userId = rows[0].id;
+    }
+
+    res.json({ userId });
+  } catch (err) {
+    console.error("USER INIT ERROR:", err);
+    res.status(500).json({ error: "User init failed" });
   }
-
-  const [result] = await db.query(
-    "INSERT INTO users (device_id) VALUES (?)",
-    [deviceId]
-  );
-
-  res.json({ userId: result.insertId });
 });
 
-// --------------------
-// INTRO STATUS  ✅ (THIS WAS MISSING)
-// --------------------
+/* --------------------
+   INTRO STATUS
+   Used to decide:
+   new user → intro page
+   old user → writing page
+-------------------- */
+
 app.get("/intro/status", async (req, res) => {
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: "userId required" });
+  try {
+    const { userId } = req.query;
 
-  const [rows] = await db.query(
-    "SELECT id FROM introductions WHERE user_id = ? LIMIT 1",
-    [userId]
-  );
+    if (!userId) {
+      return res.status(400).json({ error: "userId required" });
+    }
 
-  res.json({ hasIntro: rows.length > 0 });
+    const [rows] = await db.query(
+      "SELECT id FROM introductions WHERE user_id = ?",
+      [userId]
+    );
+
+    res.json additionally  {
+      hasIntro: rows.length > 0,
+    });
+  } catch (err) {
+    console.error("INTRO STATUS ERROR:", err);
+    res.status(500).json({ error: "Intro status failed" });
+  }
 });
 
-// --------------------
-// SAVE INTRO
-// --------------------
+/* --------------------
+   SAVE INTRO (ONCE)
+-------------------- */
+
 app.post("/intro/save", async (req, res) => {
-  const { userId, introText } = req.body;
-  if (!userId || !introText)
-    return res.status(400).json({ error: "invalid payload" });
+  try {
+    const { userId, content } = req.body;
 
-  await db.query(
-    "INSERT INTO introductions (user_id, text) VALUES (?, ?)",
-    [userId, introText]
-  );
+    if (!userId || !content) {
+      return res.status(400).json({ error: "userId and content required" });
+    }
 
-  res.json({ success: true });
+    await db.query(
+      "INSERT INTO introductions (user_id, content) VALUES (?, ?)",
+      [userId, content]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("SAVE INTRO ERROR:", err);
+    res.status(500).json({ error: "Failed to save introduction" });
+  }
 });
 
-// --------------------
-const PORT = process.env.PORT || 10000;
+/* --------------------
+   START SERVER
+-------------------- */
+
 app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log(`Server running on port ${PORT}`);
 });

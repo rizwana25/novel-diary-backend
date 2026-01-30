@@ -34,7 +34,6 @@ app.get("/health", (req, res) => {
 
 /* --------------------
    USER INIT (DEVICE BASED)
-   Called when "Start Writing" is pressed
 -------------------- */
 
 app.post("/users/init", async (req, res) => {
@@ -45,7 +44,6 @@ app.post("/users/init", async (req, res) => {
       return res.status(400).json({ error: "deviceId required" });
     }
 
-    // check existing user
     const [rows] = await db.query(
       "SELECT id FROM users WHERE device_id = ?",
       [deviceId]
@@ -54,14 +52,12 @@ app.post("/users/init", async (req, res) => {
     let userId;
 
     if (rows.length === 0) {
-      // new user
       const [result] = await db.query(
         "INSERT INTO users (device_id) VALUES (?)",
         [deviceId]
       );
       userId = result.insertId;
     } else {
-      // existing user
       userId = rows[0].id;
     }
 
@@ -74,9 +70,6 @@ app.post("/users/init", async (req, res) => {
 
 /* --------------------
    INTRO STATUS
-   Used to decide:
-   new user → intro page
-   old user → writing page
 -------------------- */
 
 app.get("/intro/status", async (req, res) => {
@@ -92,7 +85,7 @@ app.get("/intro/status", async (req, res) => {
       [userId]
     );
 
-    res.json additionally  {
+    res.json({
       hasIntro: rows.length > 0,
     });
   } catch (err) {

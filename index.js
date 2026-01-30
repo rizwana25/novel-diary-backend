@@ -63,8 +63,9 @@ app.post("/users/init", async (req, res) => {
 
     res.json({ userId });
   } catch (err) {
-    console.error("USER INIT ERROR:", err);
-    res.status(500).json({ error: "User init failed" });
+    console.error("USER INIT ERROR ↓↓↓");
+    console.error(err); // 👈 THIS is the missing piece
+    res.status(500).json({ error: err.message });
   }
 });
 

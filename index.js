@@ -404,6 +404,81 @@ ${profileText}
     res.status(500).json({ error: "Failed to generate intro" });
   }
 });
+/* =========================
+   FULL BOOK COMPILER
+========================= */
+app.get("/api/book/:userUid", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    if (!userUid) {
+      return res.status(400).json({ error: "Missing userUid" });
+    }
+
+    /* =========================
+       FETCH INTRO
+    ========================= */
+    const [profileRows] = await db.execute(
+      "SELECT generated_intro, name FROM user_profiles WHERE user_uid = ?",
+      [userUid]
+    );
+
+    let introText = null;
+    let authorName = "Author";
+
+    if (profileRows.length > 0) {
+      introText = profileRows[0].generated_intro;
+      authorName = profileRows[0].name || "Author";
+    }
+
+    /* =========================
+       FETCH WEEKLY CHAPTERS
+    ========================= */
+    const [chapterRows] = await db.execute(
+      "SELECT chapter_text FROM weekly_chapters WHERE user_uid = ? ORDER BY week_start ASC",
+      [userUid]
+    );
+
+    if (chapterRows.length === 0) {
+      return res.status(400).json({ error: "No chapters found" });
+    }
+
+    /* =========================
+       BUILD BOOK TEXT
+    ========================= */
+
+    const BOOK_TITLE = "A Life in Progress";
+
+    let bookText = "";
+
+    // Title Page
+    bookText += `${BOOK_TITLE}\n\n`;
+    bookText += `${authorName}\n\n\n`;
+
+    // Prologue
+    if (introText) {
+      bookText += `Prologue\n\n`;
+      bookText += `${introText.trim()}\n\n\n`;
+    }
+
+    // Chapters
+    chapterRows.forEach((chapter, index) => {
+      const chapterNumber = index + 1;
+
+      bookText += `Chapter ${chapterNumber}\n\n`;
+      bookText += `${chapter.chapter_text.trim()}\n\n\n`;
+    });
+
+    res.json({
+      bookText: bookText,
+      totalChapters: chapterRows.length
+    });
+
+  } catch (err) {
+    console.error("BOOK COMPILER ERROR:", err);
+    res.status(500).json({ error: "Failed to compile book" });
+  }
+});
 
 /* =========================
    START SERVER

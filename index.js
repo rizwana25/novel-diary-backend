@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2/promise");
 const cors = require("cors");
+const PDFDocument = require("pdfkit");
+
 
 const app = express();
 app.use(cors());
@@ -477,6 +479,142 @@ app.get("/api/book/:userUid", async (req, res) => {
   } catch (err) {
     console.error("BOOK COMPILER ERROR:", err);
     res.status(500).json({ error: "Failed to compile book" });
+  }
+});
+/* =========================
+   FULL BOOK PDF EXPORT
+========================= */
+app.get("/api/book/:userUid/pdf", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    if (!userUid) {
+      return res.status(400).json({ error: "Missing userUid" });
+    }
+
+    /* =========================
+       FETCH PROFILE (INTRO + NAME)
+    ========================= */
+    const [profileRows] = await db.execute(
+      "SELECT generated_intro, name FROM user_profiles WHERE user_uid = ?",
+      [userUid]
+    );
+
+    let introText = null;
+    let authorName = "Author";
+
+    if (profileRows.length > 0) {
+      introText = profileRows[0].generated_intro;
+      authorName = profileRows[0].name || "Author";
+    }
+
+    /* =========================
+       FETCH CHAPTERS
+    ========================= */
+    const [chapterRows] = await db.execute(
+      "SELECT chapter_text FROM weekly_chapters WHERE user_uid = ? ORDER BY week_start ASC",
+      [userUid]
+    );
+
+    if (chapterRows.length === 0) {
+      return res.status(400).json({ error: "No chapters found" });
+    }
+
+    /* =========================
+       CREATE PDF
+    ========================= */
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 72, bottom: 72, left: 72, right: 72 }
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=My_Book.pdf"
+    );
+
+    doc.pipe(res);
+
+    const BOOK_TITLE = "A Life in Progress";
+
+    /* =========================
+       TITLE PAGE
+    ========================= */
+    doc.font("Times-Roman")
+       .fontSize(28)
+       .text(BOOK_TITLE, { align: "center" });
+
+    doc.moveDown(2);
+
+    doc.fontSize(18)
+       .text(authorName, { align: "center" });
+
+    doc.addPage();
+
+    /* =========================
+       PROLOGUE
+    ========================= */
+    if (introText) {
+      doc.fontSize(20)
+         .text("Prologue", { align: "center" });
+
+      doc.moveDown(2);
+
+      doc.fontSize(12)
+         .text(introText, {
+           align: "justify",
+           lineGap: 4,
+           paragraphGap: 10
+         });
+
+      doc.addPage();
+    }
+
+    /* =========================
+       CHAPTERS
+    ========================= */
+    chapterRows.forEach((chapter, index) => {
+      const chapterNumber = index + 1;
+
+      doc.fontSize(20)
+         .text(`Chapter ${chapterNumber}`, { align: "center" });
+
+      doc.moveDown(2);
+
+      doc.fontSize(12)
+         .text(chapter.chapter_text, {
+           align: "justify",
+           lineGap: 4,
+           paragraphGap: 10
+         });
+
+      if (index !== chapterRows.length - 1) {
+        doc.addPage();
+      }
+    });
+
+    /* =========================
+       PAGE NUMBERS
+    ========================= */
+    const pageCount = doc.bufferedPageRange().count;
+
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(10)
+         .text(
+           `${i + 1}`,
+           0,
+           doc.page.height - 50,
+           { align: "center" }
+         );
+    }
+
+    doc.end();
+
+  } catch (err) {
+    console.error("PDF GENERATION ERROR:", err);
+    res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 

@@ -640,8 +640,12 @@ app.post("/api/internal/run-weekly", async (req, res) => {
     }
     
 
-    const now = new Date();
-    const day = now.getDay();
+    const now = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
+    
+    const day = 0;
+
 
     // Only allow Sunday execution
     if (day !== 0) {

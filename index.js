@@ -525,8 +525,10 @@ app.get("/api/book/:userUid/pdf", async (req, res) => {
     ========================= */
     const doc = new PDFDocument({
       size: "A4",
-      margins: { top: 72, bottom: 72, left: 72, right: 72 }
+      margins: { top: 72, bottom: 72, left: 72, right: 72 },
+      bufferPages: true
     });
+    
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

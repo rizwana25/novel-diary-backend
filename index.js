@@ -627,8 +627,12 @@ app.post("/api/internal/run-weekly", async (req, res) => {
 
   try {
     const secret = req.headers["x-internal-secret"];
-    console.log("Header received:", secret);
-    console.log("Env value:", process.env.INTERNAL_SECRET);
+    console.log("Header received length:", secret.length);
+    console.log("Env value length:", process.env.INTERNAL_SECRET.length);
+
+    console.log("Header raw:", JSON.stringify(secret));
+    console.log("Env raw:", JSON.stringify(process.env.INTERNAL_SECRET));
+
 
 
     if (secret !== process.env.INTERNAL_SECRET) {

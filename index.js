@@ -619,6 +619,143 @@ app.get("/api/book/:userUid/pdf", async (req, res) => {
     res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
+/* =========================
+   WEEKLY AUTOMATION RUNNER
+========================= */
+app.post("/api/internal/run-weekly", async (req, res) => {
+  try {
+    const secret = req.headers["x-internal-secret"];
+
+    if (secret !== process.env.INTERNAL_SECRET) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const now = new Date();
+    const day = now.getDay();
+
+    // Only allow Sunday execution
+    if (day !== 0) {
+      return res.json({ message: "Not Sunday. Skipping." });
+    }
+
+    console.log("Starting weekly automation...");
+
+    /* =========================
+       CALCULATE WEEK RANGE
+    ========================= */
+    const diffToMonday = -6;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatDate = (d) => d.toISOString().split("T")[0];
+    const weekStart = formatDate(monday);
+    const weekEnd = formatDate(sunday);
+
+    /* =========================
+       GET ALL USERS
+    ========================= */
+    const [users] = await db.execute(
+      "SELECT user_uid FROM user_profiles"
+    );
+
+    for (const user of users) {
+      const userUid = user.user_uid;
+
+      /* =========================
+         CHECK IF CHAPTER EXISTS
+      ========================= */
+      const [existing] = await db.execute(
+        "SELECT chapter_text FROM weekly_chapters WHERE user_uid = ? AND week_start = ?",
+        [userUid, weekStart]
+      );
+
+      if (existing.length > 0) {
+        console.log(`Chapter already exists for ${userUid}`);
+        continue;
+      }
+
+      /* =========================
+         FETCH ENTRIES
+      ========================= */
+      const [entries] = await db.execute(
+        `SELECT content FROM daily_entries
+         WHERE user_uid = ?
+         AND entry_date BETWEEN ? AND ?
+         ORDER BY entry_date ASC`,
+        [userUid, weekStart, weekEnd]
+      );
+
+      if (entries.length === 0) {
+        console.log(`No entries for ${userUid}`);
+        continue;
+      }
+
+      let compiledText = "";
+      entries.forEach(e => {
+        compiledText += e.content.trim() + "\n\n";
+      });
+
+      /* =========================
+         CALL GEMINI
+      ========================= */
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `
+Rewrite the following diary entries into a continuous third-person narrative.
+Do not invent details. Do not add new characters.
+
+Diary:
+${compiledText}
+`
+                  }
+                ]
+              }
+            ]
+          })
+        }
+      );
+
+      const geminiData = await geminiResponse.json();
+
+      const enhancedText =
+        geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!enhancedText) {
+        console.log(`AI failed for ${userUid}`);
+        continue;
+      }
+
+      /* =========================
+         SAVE CHAPTER
+      ========================= */
+      await db.execute(
+        `INSERT INTO weekly_chapters
+         (user_uid, week_start, week_end, chapter_text)
+         VALUES (?, ?, ?, ?)`,
+        [userUid, weekStart, weekEnd, enhancedText]
+      );
+
+      console.log(`Generated chapter for ${userUid}`);
+    }
+
+    res.json({ message: "Weekly automation completed." });
+
+  } catch (err) {
+    console.error("WEEKLY AUTOMATION ERROR:", err);
+    res.status(500).json({ error: "Weekly run failed" });
+  }
+});
 
 /* =========================
    START SERVER

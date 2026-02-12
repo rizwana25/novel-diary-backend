@@ -139,13 +139,17 @@ app.get("/api/entries/week/:userUid", async (req, res) => {
   }
 });
 
-/* =========================
-   ENHANCE WEEK WITH GEMINI 2.x
-========================= */
 app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
   try {
     const { userUid } = req.params;
 
+    if (!userUid) {
+      return res.status(400).json({ error: "Missing userUid" });
+    }
+
+    /* =========================
+       CALCULATE WEEK RANGE
+    ========================= */
     const now = new Date();
     const day = now.getDay();
     const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -157,76 +161,76 @@ app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
     sunday.setDate(monday.getDate() + 6);
 
     const formatDate = (d) => d.toISOString().split("T")[0];
-    const startDate = formatDate(monday);
-    const endDate = formatDate(sunday);
+    const weekStart = formatDate(monday);
+    const weekEnd = formatDate(sunday);
 
-    const [rows] = await db.execute(
-      `
-      SELECT content
-      FROM daily_entries
-      WHERE user_uid = ?
-      AND entry_date BETWEEN ? AND ?
-      ORDER BY entry_date ASC
-      `,
-      [userUid, startDate, endDate]
+    /* =========================
+       CHECK IF CHAPTER EXISTS
+    ========================= */
+    const [existing] = await db.execute(
+      "SELECT chapter_text FROM weekly_chapters WHERE user_uid = ? AND week_start = ?",
+      [userUid, weekStart]
     );
 
-    if (rows.length === 0) {
+    if (existing.length > 0) {
+      return res.json({
+        enhancedChapter: existing[0].chapter_text,
+        source: "database"
+      });
+    }
+
+    /* =========================
+       FETCH WEEKLY ENTRIES
+    ========================= */
+    const [entries] = await db.execute(
+      `SELECT content
+       FROM daily_entries
+       WHERE user_uid = ?
+       AND entry_date BETWEEN ? AND ?
+       ORDER BY entry_date ASC`,
+      [userUid, weekStart, weekEnd]
+    );
+
+    if (entries.length === 0) {
       return res.json({ error: "No entries this week" });
     }
 
     let compiledText = "";
-    rows.forEach((entry) => {
-      compiledText += entry.content.trim() + "\n\n";
+    entries.forEach((e) => {
+      compiledText += e.content.trim() + "\n\n";
     });
 
-    /* ===== GEMINI 2.x CALL ===== */
+    /* =========================
+       CALL GEMINI 2.5
+    ========================= */
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
             {
               parts: [
                 {
-                  text: `Rewrite the following diary entries into a single continuous third-person narrative.
+                  text: `
+Rewrite the following diary entries into a single continuous third-person narrative.
 
-                  Voice & Perspective:
-                  - Use "she" consistently.
-                  - Stay inside her perspective.
-                  - Do not refer to her as "the student" or use generic labels.
-                  - Do not step outside her internal experience.
-                  
-                  Tone:
-                  - Beautiful but restrained.
-                  - Natural, not poetic for the sake of poetry.
-                  - Emotional but not dramatic.
-                  - Do not sound like an essay.
-                  - Do not analyze her growth.
-                  - Do not explain what the reader should understand.
-                  - Let moments speak without summarizing them.
-                  
-                  Strict Rules:
-                  - Do NOT invent events.
-                  - Do NOT add conversations.
-                  - Do NOT introduce new people.
-                  - Do NOT add sensory details that were not written.
-                  - Do NOT remove repetition.
-                  - Do NOT compress or summarize.
-                  - Preserve all important details.
-                  - Do not mention dates or weeks.
-                  
-                  Important:
-                  This is not a retrospective reflection.
-                  Write it as if the story is unfolding in real time.
-                  
-                  Diary Entries:
-                  
-    ${compiledText}`
+Voice:
+- Use "she" consistently.
+- Stay fully inside her experience.
+- Do not step outside her perspective.
+
+Strict Rules:
+- Do NOT invent events.
+- Do NOT add conversations.
+- Do NOT introduce new people.
+- Do NOT summarize.
+- Do NOT mention dates or weeks.
+
+Diary Entries:
+${compiledText}
+                  `
                 }
               ]
             }
@@ -234,17 +238,35 @@ app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
         })
       }
     );
-    
 
     const geminiData = await geminiResponse.json();
 
-    console.log("GEMINI RESPONSE:", JSON.stringify(geminiData, null, 2));
+    if (geminiData.error) {
+      console.error(geminiData.error);
+      return res.status(500).json({ error: "AI generation failed" });
+    }
 
     const enhancedText =
-      geminiData.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Failed to generate narrative.";
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    res.json({ enhancedChapter: enhancedText });
+    if (!enhancedText) {
+      return res.status(500).json({ error: "No AI output" });
+    }
+
+    /* =========================
+       SAVE CHAPTER
+    ========================= */
+    await db.execute(
+      `INSERT INTO weekly_chapters 
+       (user_uid, week_start, week_end, chapter_text)
+       VALUES (?, ?, ?, ?)`,
+      [userUid, weekStart, weekEnd, enhancedText]
+    );
+
+    res.json({
+      enhancedChapter: enhancedText,
+      source: "generated"
+    });
 
   } catch (err) {
     console.error("ENHANCE ERROR:", err);

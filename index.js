@@ -78,6 +78,21 @@ app.get("/api/entries/:userUid/:date", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch entry" });
   }
 });
+app.get("/api/entries/:userUid", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT entry_date FROM daily_entries WHERE user_uid = ? ORDER BY entry_date DESC",
+      [userUid]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("FETCH DATES ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch entries" });
+  }
+});
 
 /* =========================
    START SERVER

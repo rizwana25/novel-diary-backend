@@ -162,6 +162,113 @@ app.get("/api/entries/week/:userUid/compiled", async (req, res) => {
     res.status(500).json({ error: "Failed to compile weekly chapter" });
   }
 });
+app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    if (!userUid) {
+      return res.status(400).json({ error: "Missing userUid" });
+    }
+
+    /* =========================
+       GET WEEK RANGE
+    ========================= */
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1 - day);
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatDate = (d) => d.toISOString().split("T")[0];
+    const startDate = formatDate(monday);
+    const endDate = formatDate(sunday);
+
+    /* =========================
+       FETCH ENTRIES
+    ========================= */
+    const [rows] = await db.execute(
+      `
+      SELECT entry_date, content
+      FROM daily_entries
+      WHERE user_uid = ?
+      AND entry_date BETWEEN ? AND ?
+      ORDER BY entry_date ASC
+      `,
+      [userUid, startDate, endDate]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ error: "No entries this week" });
+    }
+
+    /* =========================
+       COMPILE RAW TEXT
+    ========================= */
+    let compiledText = "";
+    rows.forEach((entry) => {
+      compiledText += entry.content.trim() + "\n\n";
+    });
+
+    /* =========================
+       CALL GEMINI
+    ========================= */
+    const geminiResponse = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
+        process.env.GEMINI_API_KEY,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `
+Rewrite the following diary entries into a single cinematic third-person narrative chapter.
+
+STRICT RULES:
+- Do NOT invent events.
+- Do NOT add conversations.
+- Do NOT add sensory descriptions not present.
+- Do NOT introduce new people.
+- Use only information explicitly written.
+- Merge naturally as a continuation of an ongoing story.
+- Do not mention days or weeks.
+- Keep it heartfelt and raw.
+- Avoid melodrama.
+- Do not summarize. Preserve all important details.
+
+Diary Entries:
+${compiledText}
+                  `,
+                },
+              ],
+            },
+          ],
+        }),
+      }
+    );
+
+    const geminiData = await geminiResponse.json();
+
+    const enhancedText =
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Failed to generate narrative.";
+
+    res.json({
+      enhancedChapter: enhancedText,
+    });
+  } catch (err) {
+    console.error("ENHANCE ERROR:", err);
+    res.status(500).json({ error: "Failed to enhance chapter" });
+  }
+});
 
 /* =========================
    FETCH SINGLE DAY ENTRY

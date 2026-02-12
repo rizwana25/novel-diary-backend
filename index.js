@@ -182,38 +182,41 @@ app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
 
     /* ===== GEMINI 2.x CALL ===== */
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           contents: [
             {
               parts: [
                 {
                   text: `Rewrite the following diary entries into a single cinematic third-person narrative chapter.
-
-STRICT RULES:
-- Do NOT invent events.
-- Do NOT add conversations.
-- Do NOT add sensory details not written.
-- Do NOT introduce new people.
-- Use only explicitly written information.
-- Merge naturally as continuation.
-- Do not mention days or weeks.
-- Keep it raw and heartfelt.
-- Avoid melodrama.
-- Preserve all important details.
-
-Diary Entries:
-${compiledText}`,
-                },
-              ],
-            },
-          ],
-        }),
+    
+    STRICT RULES:
+    - Do NOT invent events.
+    - Do NOT add conversations.
+    - Do NOT add sensory details not written.
+    - Do NOT introduce new people.
+    - Use only explicitly written information.
+    - Merge naturally as continuation.
+    - Do not mention days or weeks.
+    - Keep it raw and heartfelt.
+    - Avoid melodrama.
+    - Preserve all important details.
+    
+    Diary Entries:
+    ${compiledText}`
+                }
+              ]
+            }
+          ]
+        })
       }
     );
+    
 
     const geminiData = await geminiResponse.json();
 

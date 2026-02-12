@@ -22,7 +22,7 @@ const db = mysql.createPool({
 ========================= */
 app.get("/health", async (req, res) => {
   try {
-    const [rows] = await db.execute("SELECT 1");
+    await db.execute("SELECT 1");
     res.json({ status: "ok", db: "connected" });
   } catch (err) {
     console.error("DB ERROR:", err);
@@ -36,6 +36,10 @@ app.get("/health", async (req, res) => {
 app.get("/", (req, res) => {
   res.json({ message: "Backend running successfully" });
 });
+
+/* =========================
+   SAVE DAILY ENTRY
+========================= */
 app.post("/api/entries", async (req, res) => {
   try {
     const { userUid, entryDate, content } = req.body;
@@ -59,40 +63,10 @@ app.post("/api/entries", async (req, res) => {
     res.status(500).json({ error: "Failed to save entry" });
   }
 });
-app.get("/api/entries/:userUid/:date", async (req, res) => {
-  try {
-    const { userUid, date } = req.params;
 
-    const [rows] = await db.execute(
-      "SELECT content FROM daily_entries WHERE user_uid = ? AND entry_date = ?",
-      [userUid, date]
-    );
-
-    if (rows.length === 0) {
-      return res.json({ content: "" });
-    }
-
-    res.json({ content: rows[0].content });
-  } catch (err) {
-    console.error("FETCH ENTRY ERROR:", err);
-    res.status(500).json({ error: "Failed to fetch entry" });
-  }
-});
-app.get("/api/entries/:userUid", async (req, res) => {
-  try {
-    const { userUid } = req.params;
-
-    const [rows] = await db.execute(
-      "SELECT entry_date FROM daily_entries WHERE user_uid = ? ORDER BY entry_date DESC",
-      [userUid]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error("FETCH DATES ERROR:", err);
-    res.status(500).json({ error: "Failed to fetch entries" });
-  }
-});
+/* =========================
+   WEEKLY ENTRIES (SPECIFIC ROUTE FIRST)
+========================= */
 app.get("/api/entries/week/:userUid", async (req, res) => {
   try {
     const { userUid } = req.params;
@@ -101,12 +75,10 @@ app.get("/api/entries/week/:userUid", async (req, res) => {
       return res.status(400).json({ error: "Missing userUid" });
     }
 
-    // Get current date
     const now = new Date();
 
-    // Find Monday of current week
     const day = now.getDay(); // 0 (Sun) - 6 (Sat)
-    const diffToMonday = (day === 0 ? -6 : 1 - day);
+    const diffToMonday = day === 0 ? -6 : 1 - day;
 
     const monday = new Date(now);
     monday.setDate(now.getDate() + diffToMonday);
@@ -114,7 +86,6 @@ app.get("/api/entries/week/:userUid", async (req, res) => {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
 
-    // Format YYYY-MM-DD
     const formatDate = (d) => d.toISOString().split("T")[0];
 
     const startDate = formatDate(monday);
@@ -140,6 +111,48 @@ app.get("/api/entries/week/:userUid", async (req, res) => {
   } catch (err) {
     console.error("WEEK FETCH ERROR:", err);
     res.status(500).json({ error: "Failed to fetch weekly entries" });
+  }
+});
+
+/* =========================
+   FETCH SINGLE DAY ENTRY
+========================= */
+app.get("/api/entries/:userUid/:date", async (req, res) => {
+  try {
+    const { userUid, date } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT content FROM daily_entries WHERE user_uid = ? AND entry_date = ?",
+      [userUid, date]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ content: "" });
+    }
+
+    res.json({ content: rows[0].content });
+  } catch (err) {
+    console.error("FETCH ENTRY ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch entry" });
+  }
+});
+
+/* =========================
+   FETCH ALL ENTRY DATES
+========================= */
+app.get("/api/entries/:userUid", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT entry_date FROM daily_entries WHERE user_uid = ? ORDER BY entry_date DESC",
+      [userUid]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("FETCH DATES ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch entries" });
   }
 });
 

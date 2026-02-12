@@ -629,6 +629,9 @@ app.post("/api/internal/run-weekly", async (req, res) => {
     if (secret !== process.env.INTERNAL_SECRET) {
       return res.status(403).json({ error: "Unauthorized" });
     }
+  console.log("Header received:", secret);
+  console.log("Env value:", process.env.INTERNAL_SECRET);
+
 
     const now = new Date();
     const day = now.getDay();
@@ -639,6 +642,7 @@ app.post("/api/internal/run-weekly", async (req, res) => {
     }
 
     console.log("Starting weekly automation...");
+    
 
     /* =========================
        CALCULATE WEEK RANGE

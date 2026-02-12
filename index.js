@@ -193,21 +193,39 @@ app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
             {
               parts: [
                 {
-                  text: `Rewrite the following diary entries into a single cinematic third-person narrative chapter.
-    
-    STRICT RULES:
-    - Do NOT invent events.
-    - Do NOT add conversations.
-    - Do NOT add sensory details not written.
-    - Do NOT introduce new people.
-    - Use only explicitly written information.
-    - Merge naturally as continuation.
-    - Do not mention days or weeks.
-    - Keep it raw and heartfelt.
-    - Avoid melodrama.
-    - Preserve all important details.
-    
-    Diary Entries:
+                  text: `Rewrite the following diary entries into a single continuous third-person narrative.
+
+                  Voice & Perspective:
+                  - Use "she" consistently.
+                  - Stay inside her perspective.
+                  - Do not refer to her as "the student" or use generic labels.
+                  - Do not step outside her internal experience.
+                  
+                  Tone:
+                  - Beautiful but restrained.
+                  - Natural, not poetic for the sake of poetry.
+                  - Emotional but not dramatic.
+                  - Do not sound like an essay.
+                  - Do not analyze her growth.
+                  - Do not explain what the reader should understand.
+                  - Let moments speak without summarizing them.
+                  
+                  Strict Rules:
+                  - Do NOT invent events.
+                  - Do NOT add conversations.
+                  - Do NOT introduce new people.
+                  - Do NOT add sensory details that were not written.
+                  - Do NOT remove repetition.
+                  - Do NOT compress or summarize.
+                  - Preserve all important details.
+                  - Do not mention dates or weeks.
+                  
+                  Important:
+                  This is not a retrospective reflection.
+                  Write it as if the story is unfolding in real time.
+                  
+                  Diary Entries:
+                  
     ${compiledText}`
                 }
               ]

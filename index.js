@@ -625,13 +625,14 @@ app.get("/api/book/:userUid/pdf", async (req, res) => {
 app.post("/api/internal/run-weekly", async (req, res) => {
   try {
     const secret = req.headers["x-internal-secret"];
+    console.log("Header received:", secret);
+    console.log("Env value:", process.env.INTERNAL_SECRET);
+
 
     if (secret !== process.env.INTERNAL_SECRET) {
       return res.status(403).json({ error: "Unauthorized" });
     }
-  console.log("Header received:", secret);
-  console.log("Env value:", process.env.INTERNAL_SECRET);
-
+    
 
     const now = new Date();
     const day = now.getDay();

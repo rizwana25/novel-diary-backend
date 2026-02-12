@@ -273,6 +273,137 @@ ${compiledText}
     res.status(500).json({ error: "Failed to enhance chapter" });
   }
 });
+app.post("/api/profile", async (req, res) => {
+  try {
+    const { userUid, name, pronoun, place, life_phase, daily_life, dreams } = req.body;
+
+    if (!userUid) {
+      return res.status(400).json({ error: "Missing userUid" });
+    }
+
+    await db.execute(
+      `INSERT INTO user_profiles 
+      (user_uid, name, pronoun, place, life_phase, daily_life, dreams)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        pronoun = VALUES(pronoun),
+        place = VALUES(place),
+        life_phase = VALUES(life_phase),
+        daily_life = VALUES(daily_life),
+        dreams = VALUES(dreams)`,
+      [userUid, name, pronoun, place, life_phase, daily_life, dreams]
+    );
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("PROFILE SAVE ERROR:", err);
+    res.status(500).json({ error: "Failed to save profile" });
+  }
+});
+app.get("/api/profile/:userUid", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT * FROM user_profiles WHERE user_uid = ?",
+      [userUid]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ profile: null });
+    }
+
+    res.json({ profile: rows[0] });
+
+  } catch (err) {
+    console.error("PROFILE FETCH ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+app.post("/api/profile/:userUid/generate-intro", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT * FROM user_profiles WHERE user_uid = ?",
+      [userUid]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    const profile = rows[0];
+
+    const profileText = `
+Name: ${profile.name}
+Pronoun: ${profile.pronoun}
+Place: ${profile.place}
+Life Phase: ${profile.life_phase}
+Daily Life: ${profile.daily_life}
+Dreams: ${profile.dreams}
+`;
+
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `
+Write a third-person introduction for a memoir.
+
+STRICT RULES:
+- Do NOT invent events.
+- Do NOT add backstory.
+- Use only the information provided.
+- Keep tone natural and grounded.
+- Do not sound dramatic.
+- Do not summarize life lessons.
+- Do not mention time markers like years.
+- This is the opening of a printed book.
+
+Profile:
+${profileText}
+                  `
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
+
+    const geminiData = await geminiResponse.json();
+
+    const introText =
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!introText) {
+      return res.status(500).json({ error: "Failed to generate intro" });
+    }
+
+    await db.execute(
+      "UPDATE user_profiles SET generated_intro = ? WHERE user_uid = ?",
+      [introText, userUid]
+    );
+
+    res.json({
+      intro: introText,
+      source: "generated"
+    });
+
+  } catch (err) {
+    console.error("INTRO GENERATION ERROR:", err);
+    res.status(500).json({ error: "Failed to generate intro" });
+  }
+});
 
 /* =========================
    START SERVER

@@ -113,6 +113,55 @@ app.get("/api/entries/week/:userUid", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch weekly entries" });
   }
 });
+app.get("/api/entries/week/:userUid/compiled", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatDate = (d) => d.toISOString().split("T")[0];
+
+    const startDate = formatDate(monday);
+    const endDate = formatDate(sunday);
+
+    const [rows] = await db.execute(
+      `
+      SELECT entry_date, content
+      FROM daily_entries
+      WHERE user_uid = ?
+      AND entry_date BETWEEN ? AND ?
+      ORDER BY entry_date ASC
+      `,
+      [userUid, startDate, endDate]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ chapterText: "No entries this week." });
+    }
+
+    let chapter = `Chapter: Week of ${startDate} to ${endDate}\n\n`;
+
+    rows.forEach((entry) => {
+      const dateOnly = entry.entry_date.toISOString().split("T")[0];
+      chapter += `${dateOnly}\n`;
+      chapter += `${entry.content}\n\n`;
+    });
+
+    res.json({ chapterText: chapter });
+
+  } catch (err) {
+    console.error("COMPILE ERROR:", err);
+    res.status(500).json({ error: "Failed to compile weekly chapter" });
+  }
+});
 
 /* =========================
    FETCH SINGLE DAY ENTRY

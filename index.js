@@ -93,6 +93,55 @@ app.get("/api/entries/:userUid", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch entries" });
   }
 });
+app.get("/api/entries/week/:userUid", async (req, res) => {
+  try {
+    const { userUid } = req.params;
+
+    if (!userUid) {
+      return res.status(400).json({ error: "Missing userUid" });
+    }
+
+    // Get current date
+    const now = new Date();
+
+    // Find Monday of current week
+    const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+    const diffToMonday = (day === 0 ? -6 : 1 - day);
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    // Format YYYY-MM-DD
+    const formatDate = (d) => d.toISOString().split("T")[0];
+
+    const startDate = formatDate(monday);
+    const endDate = formatDate(sunday);
+
+    const [rows] = await db.execute(
+      `
+      SELECT entry_date, content
+      FROM daily_entries
+      WHERE user_uid = ?
+      AND entry_date BETWEEN ? AND ?
+      ORDER BY entry_date ASC
+      `,
+      [userUid, startDate, endDate]
+    );
+
+    res.json({
+      weekStart: startDate,
+      weekEnd: endDate,
+      entries: rows,
+    });
+
+  } catch (err) {
+    console.error("WEEK FETCH ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch weekly entries" });
+  }
+});
 
 /* =========================
    START SERVER

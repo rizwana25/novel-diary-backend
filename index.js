@@ -623,6 +623,8 @@ app.get("/api/book/:userUid/pdf", async (req, res) => {
    WEEKLY AUTOMATION RUNNER
 ========================= */
 app.post("/api/internal/run-weekly", async (req, res) => {
+  console.log("RUN-WEEKLY ROUTE HIT");
+
   try {
     const secret = req.headers["x-internal-secret"];
     console.log("Header received:", secret);

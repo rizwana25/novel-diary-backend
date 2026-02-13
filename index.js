@@ -776,6 +776,8 @@ ${compiledText}
 });
 app.get("/api/test-email", async (req, res) => {
   console.log("SENDGRID KEY EXISTS:", !!process.env.SENDGRID_API_KEY);
+  console.log("Key length:", process.env.SENDGRID_API_KEY?.length);
+
 
   try {
     await sgMail.send({

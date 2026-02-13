@@ -364,20 +364,56 @@ Dreams: ${profile.dreams}
               parts: [
                 {
                   text: `
-Write a third-person introduction for a memoir.
+                  You are writing the opening page of a quiet literary novel.
 
-STRICT RULES:
-- Do NOT invent events.
-- Do NOT add backstory.
-- Use only the information provided.
-- Keep tone natural and grounded.
-- Do not sound dramatic.
-- Do not summarize life lessons.
-- Do not mention time markers like years.
-- This is the opening of a printed book.
-
-Profile:
+                  This is not a biography.
+                  This is not a summary.
+                  This is not motivational writing.
+                  Do not explain the character.
+                  Do not narrate their future.
+                  Do not add meaning beyond what is shown.
+                  
+                  The goal is to leave the reader inside a single, quiet moment.
+                  
+                  STRICT RULES:
+                  
+                  Tone:
+                  - Calm
+                  - Observational
+                  - Unresolved
+                  - Emotion beneath the sentence, not directly stated
+                  - No dramatic intensity
+                  - No inspirational language
+                  
+                  Language:
+                  - Short paragraphs (2–4 sentences each)
+                  - Simple, grounded vocabulary
+                  - No rhetorical questions
+                  - No similes
+                  - No metaphors that explain emotion
+                  - Avoid adverbs
+                  - Avoid abstract statements about "life", "destiny", or "change"
+                  
+                  Structure:
+                  1. Begin with the physical place mentioned in the profile.
+                  2. Show a small repeated habit or ordinary action.
+                  3. Gently introduce the character’s inner state without naming it directly.
+                  4. Mention the character’s name once, naturally within the scene.
+                  5. Hint at longing or uncertainty without urgency.
+                  6. End EXACTLY with:
+                  
+                  Her story begins here today.
+                  
+                  Important:
+                  - Use ONLY the information provided in the profile.
+                  - Do NOT invent events.
+                  - Do NOT add backstory.
+                  - Do NOT conclude the story.
+                  - Leave emotional space between sentences.
+                  
+                  Profile:
 ${profileText}
+                  
                   `
                 }
               ]

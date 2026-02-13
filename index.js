@@ -781,8 +781,8 @@ app.get("/api/test-email", async (req, res) => {
 
   try {
     await sgMail.send({
-      to: "fathimathrizwana761@gmail.com", // replace with YOUR email
-      from: "Rizwanarizu432@gmail.com", // must be verified in SendGrid
+      to: "rizwanarizu432@gmail.com", // replace with YOUR email
+      from: "rizwanarizu432@gmail.com", // must be verified in SendGrid
       subject: "Test Email from Novel Diary",
       text: "If you received this, SendGrid is working correctly."
       

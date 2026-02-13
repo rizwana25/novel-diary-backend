@@ -280,7 +280,7 @@ ${compiledText}
 });
 app.post("/api/profile", async (req, res) => {
   try {
-    const { userUid, name, pronoun, place, life_phase, daily_life, dreams } = req.body;
+    const { userUid, email, name, pronoun, place, life_phase, daily_life, dreams } = req.body;
 
     if (!userUid) {
       return res.status(400).json({ error: "Missing userUid" });
@@ -288,17 +288,19 @@ app.post("/api/profile", async (req, res) => {
 
     await db.execute(
       `INSERT INTO user_profiles 
-      (user_uid, name, pronoun, place, life_phase, daily_life, dreams)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (user_uid, email, name, pronoun, place, life_phase, daily_life, dreams)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
+        email = VALUES(email),
         name = VALUES(name),
         pronoun = VALUES(pronoun),
         place = VALUES(place),
         life_phase = VALUES(life_phase),
         daily_life = VALUES(daily_life),
         dreams = VALUES(dreams)`,
-      [userUid, name, pronoun, place, life_phase, daily_life, dreams]
+      [userUid, email, name, pronoun, place, life_phase, daily_life, dreams]
     );
+    
 
     res.json({ success: true });
 

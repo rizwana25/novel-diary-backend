@@ -3,6 +3,9 @@ const express = require("express");
 const mysql = require("mysql2/promise");
 const cors = require("cors");
 const PDFDocument = require("pdfkit");
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 
 
 const app = express();
@@ -769,6 +772,22 @@ ${compiledText}
   } catch (err) {
     console.error("WEEKLY AUTOMATION ERROR:", err);
     res.status(500).json({ error: "Weekly run failed" });
+  }
+});
+app.get("/api/test-email", async (req, res) => {
+  try {
+    await sgMail.send({
+      to: "fathimathrizwana761@gmail.com", // replace with YOUR email
+      from: "Rizwanarizu432@gmail.com", // must be verified in SendGrid
+      subject: "Test Email from Novel Diary",
+      text: "If you received this, SendGrid is working correctly."
+    });
+
+    res.json({ success: true, message: "Email sent!" });
+
+  } catch (error) {
+    console.error("SENDGRID ERROR:", error);
+    res.status(500).json({ error: "Email failed" });
   }
 });
 

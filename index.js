@@ -644,27 +644,23 @@ app.post("/api/internal/run-weekly", async (req, res) => {
       new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
     );
 
-    const day = now.getDay();
+    const day = now.getDay(); // 0 = Sunday
 
-    if (false) {
+    if (day !== 0) {
       return res.json({ message: "Not Sunday. Skipping." });
     }
-
-    console.log("Starting weekly automation...");
-
-    /* =========================
-       CALCULATE WEEK RANGE
-    ========================= */
-    const diffToMonday = -6;
+    
+    // If today is Sunday, we define:
+    const sunday = new Date(now);
+    
     const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
+    monday.setDate(now.getDate() - 6);
+    
     const formatDate = (d) => d.toISOString().split("T")[0];
+    
     const weekStart = formatDate(monday);
     const weekEnd = formatDate(sunday);
+    
 
     /* =========================
        GET ALL USERS

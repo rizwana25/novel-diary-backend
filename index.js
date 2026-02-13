@@ -646,9 +646,9 @@ app.post("/api/internal/run-weekly", async (req, res) => {
 
     const day = now.getDay(); // 0 = Sunday
 
-   /* if (day !== 0) {
+    if (day !== 0) {
       return res.json({ message: "Not Sunday. Skipping." });
-    }*/
+    }
     
     // If today is Sunday, we define:
     const sunday = new Date(now);

@@ -775,12 +775,15 @@ ${compiledText}
   }
 });
 app.get("/api/test-email", async (req, res) => {
+  console.log("SENDGRID KEY EXISTS:", !!process.env.SENDGRID_API_KEY);
+
   try {
     await sgMail.send({
       to: "fathimathrizwana761@gmail.com", // replace with YOUR email
       from: "Rizwanarizu432@gmail.com", // must be verified in SendGrid
       subject: "Test Email from Novel Diary",
       text: "If you received this, SendGrid is working correctly."
+      
     });
 
     res.json({ success: true, message: "Email sent!" });

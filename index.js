@@ -624,41 +624,33 @@ app.get("/api/book/:userUid/pdf", async (req, res) => {
     res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
-/* =========================
-   WEEKLY AUTOMATION RUNNER
-========================= */
 app.post("/api/internal/run-weekly", async (req, res) => {
   console.log("RUN-WEEKLY ROUTE HIT");
 
   try {
+    /* =========================
+       SECRET VALIDATION
+    ========================= */
     const secret = req.headers["x-internal-secret"];
-    console.log("Header received length:", secret.length);
-    console.log("Env value length:", process.env.INTERNAL_SECRET.length);
 
-    console.log("Header raw:", JSON.stringify(secret));
-    console.log("Env raw:", JSON.stringify(process.env.INTERNAL_SECRET));
-
-
-
-    if (secret !== process.env.INTERNAL_SECRET) {
+    if (!secret || secret !== process.env.INTERNAL_SECRET) {
       return res.status(403).json({ error: "Unauthorized" });
     }
-    
 
+    /* =========================
+       FORCE IST TIMEZONE
+    ========================= */
     const now = new Date(
       new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
     );
-    
-    const day = 0;
 
+    const day = now.getDay();
 
-    // Only allow Sunday execution
-    if (day !== 0) {
+    if (false) {
       return res.json({ message: "Not Sunday. Skipping." });
     }
 
     console.log("Starting weekly automation...");
-    
 
     /* =========================
        CALCULATE WEEK RANGE
@@ -678,11 +670,17 @@ app.post("/api/internal/run-weekly", async (req, res) => {
        GET ALL USERS
     ========================= */
     const [users] = await db.execute(
-      "SELECT user_uid FROM user_profiles"
+      "SELECT user_uid, email FROM user_profiles"
     );
 
     for (const user of users) {
       const userUid = user.user_uid;
+      const userEmail = user.email;
+
+      if (!userEmail) {
+        console.log(`No email for ${userUid}, skipping.`);
+        continue;
+      }
 
       /* =========================
          CHECK IF CHAPTER EXISTS
@@ -692,81 +690,170 @@ app.post("/api/internal/run-weekly", async (req, res) => {
         [userUid, weekStart]
       );
 
+      let enhancedText;
+
       if (existing.length > 0) {
         console.log(`Chapter already exists for ${userUid}`);
-        continue;
-      }
+        enhancedText = existing[0].chapter_text;
+      } else {
+        /* =========================
+           FETCH ENTRIES
+        ========================= */
+        const [entries] = await db.execute(
+          `SELECT content FROM daily_entries
+           WHERE user_uid = ?
+           AND entry_date BETWEEN ? AND ?
+           ORDER BY entry_date ASC`,
+          [userUid, weekStart, weekEnd]
+        );
 
-      /* =========================
-         FETCH ENTRIES
-      ========================= */
-      const [entries] = await db.execute(
-        `SELECT content FROM daily_entries
-         WHERE user_uid = ?
-         AND entry_date BETWEEN ? AND ?
-         ORDER BY entry_date ASC`,
-        [userUid, weekStart, weekEnd]
-      );
+        if (entries.length === 0) {
+          console.log(`No entries for ${userUid}`);
+          continue;
+        }
 
-      if (entries.length === 0) {
-        console.log(`No entries for ${userUid}`);
-        continue;
-      }
+        let compiledText = "";
+        entries.forEach(e => {
+          compiledText += e.content.trim() + "\n\n";
+        });
 
-      let compiledText = "";
-      entries.forEach(e => {
-        compiledText += e.content.trim() + "\n\n";
-      });
-
-      /* =========================
-         CALL GEMINI
-      ========================= */
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `
+        /* =========================
+           CALL GEMINI
+        ========================= */
+        const geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `
 Rewrite the following diary entries into a continuous third-person narrative.
 Do not invent details. Do not add new characters.
 
 Diary:
 ${compiledText}
 `
-                  }
-                ]
-              }
-            ]
-          })
+                    }
+                  ]
+                }
+              ]
+            })
+          }
+        );
+
+        const geminiData = await geminiResponse.json();
+
+        enhancedText =
+          geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!enhancedText) {
+          console.log(`AI failed for ${userUid}`);
+          continue;
         }
-      );
 
-      const geminiData = await geminiResponse.json();
+        /* =========================
+           SAVE CHAPTER
+        ========================= */
+        await db.execute(
+          `INSERT INTO weekly_chapters
+           (user_uid, week_start, week_end, chapter_text)
+           VALUES (?, ?, ?, ?)`,
+          [userUid, weekStart, weekEnd, enhancedText]
+        );
 
-      const enhancedText =
-        geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!enhancedText) {
-        console.log(`AI failed for ${userUid}`);
-        continue;
+        console.log(`Generated chapter for ${userUid}`);
       }
 
       /* =========================
-         SAVE CHAPTER
+         BUILD FULL BOOK
       ========================= */
-      await db.execute(
-        `INSERT INTO weekly_chapters
-         (user_uid, week_start, week_end, chapter_text)
-         VALUES (?, ?, ?, ?)`,
-        [userUid, weekStart, weekEnd, enhancedText]
+      const [profileData] = await db.execute(
+        "SELECT generated_intro, name FROM user_profiles WHERE user_uid = ?",
+        [userUid]
       );
 
-      console.log(`Generated chapter for ${userUid}`);
+      const introText = profileData[0]?.generated_intro || "";
+      const authorName = profileData[0]?.name || "Author";
+
+      const [allChapters] = await db.execute(
+        "SELECT chapter_text FROM weekly_chapters WHERE user_uid = ? ORDER BY week_start ASC",
+        [userUid]
+      );
+
+      /* =========================
+         GENERATE PDF
+      ========================= */
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: { top: 72, bottom: 72, left: 72, right: 72 }
+      });
+
+      let buffers = [];
+      doc.on("data", buffers.push.bind(buffers));
+
+      // Title Page
+      doc.font("Times-Roman")
+         .fontSize(24)
+         .text("A Life in Progress", { align: "center" });
+
+      doc.moveDown(2);
+
+      doc.fontSize(16)
+         .text(authorName, { align: "center" });
+
+      doc.addPage();
+
+      // Prologue
+      if (introText) {
+        doc.fontSize(18).text("Prologue", { align: "center" });
+        doc.moveDown(2);
+        doc.fontSize(12).text(introText, { align: "justify" });
+        doc.addPage();
+      }
+
+      // Chapters
+      allChapters.forEach((chapter, index) => {
+        doc.fontSize(18)
+           .text(`Chapter ${index + 1}`, { align: "center" });
+
+        doc.moveDown(2);
+
+        doc.fontSize(12)
+           .text(chapter.chapter_text, { align: "justify" });
+
+        if (index !== allChapters.length - 1) {
+          doc.addPage();
+        }
+      });
+
+      doc.end();
+      await new Promise(resolve => doc.on("end", resolve));
+
+      const pdfBuffer = Buffer.concat(buffers);
+
+      /* =========================
+         SEND EMAIL
+      ========================= */
+      await sgMail.send({
+        to: userEmail,
+        from: "rizwanarizu432@gmail.com",
+        subject: "Your Weekly Book - Novel Diary",
+        text: "Your updated book is attached.",
+        attachments: [
+          {
+            content: pdfBuffer.toString("base64"),
+            filename: "My_Book.pdf",
+            type: "application/pdf",
+            disposition: "attachment"
+          }
+        ]
+      });
+
+      console.log(`Email sent to ${userEmail}`);
     }
 
     res.json({ message: "Weekly automation completed." });
@@ -776,6 +863,7 @@ ${compiledText}
     res.status(500).json({ error: "Weekly run failed" });
   }
 });
+
 app.get("/api/test-email", async (req, res) => {
   console.log("SENDGRID KEY EXISTS:", !!process.env.SENDGRID_API_KEY);
   console.log("Key length:", process.env.SENDGRID_API_KEY?.length);

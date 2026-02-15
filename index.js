@@ -664,14 +664,7 @@ app.get("/api/internal/run-weekly", async (req, res) => {
   console.log("RUN-WEEKLY ROUTE HIT");
 
   try {
-    /* =========================
-       SECRET VALIDATION
-    ========================= */
-    const secret = req.query.secret;
-
-    if (!secret || secret !== process.env.INTERNAL_SECRET) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+    
 
     /* =========================
        FORCE IST TIMEZONE

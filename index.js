@@ -667,7 +667,7 @@ app.post("/api/internal/run-weekly", async (req, res) => {
     /* =========================
        SECRET VALIDATION
     ========================= */
-    const secret = req.headers["x-internal-secret"];
+    const secret = req.query.secret;
 
     if (!secret || secret !== process.env.INTERNAL_SECRET) {
       return res.status(403).json({ error: "Unauthorized" });

@@ -660,7 +660,7 @@ app.get("/api/book/:userUid/pdf", async (req, res) => {
     res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
-app.post("/api/internal/run-weekly", async (req, res) => {
+app.get("/api/internal/run-weekly", async (req, res) => {
   console.log("RUN-WEEKLY ROUTE HIT");
 
   try {

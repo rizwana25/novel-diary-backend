@@ -364,57 +364,46 @@ Dreams: ${profile.dreams}
               parts: [
                 {
                   text: `
-                  You are writing the opening page of a quiet literary novel.
-
-                  This is not a biography.
-                  This is not a summary.
-                  This is not motivational writing.
-                  Do not explain the character.
-                  Do not narrate their future.
-                  Do not add meaning beyond what is shown.
+                  Objective: Write the first page of a literary novel. This is not a description; it is the beginning. Use the character's physical environment to establish a cinematic, atmospheric entry point into their life.
                   
-                  The goal is to leave the reader inside a single, quiet moment.
+                  STRICT ARCHITECTURE:
                   
-                  STRICT RULES:
+                  The Sensory Hook (The "Wide Shot"):
+                  Start with the environment, not the person. Describe the light, the temperature, or a specific sound in the Setting provided.
+                  Make the reader feel the heaviness or lightness of the air before the character even moves.
                   
-                  Tone:
-                  - Calm
-                  - Observational
-                  - Unresolved
-                  - Emotion beneath the sentence, not directly stated
-                  - No dramatic intensity
-                  - No inspirational language
+                  The Presence (The "Close Up"):
+                  Introduce ${profile.name} through a small, unconscious physical action.
+                  Show how they fit into their Daily Life.
+                  Use the Life Phase to set the internal volume of the scene.
                   
-                  Language:
-                  - Short paragraphs (2–4 sentences each)
-                  - Simple, grounded vocabulary
-                  - No rhetorical questions
-                  - No similes
-                  - No metaphors that explain emotion
-                  - Avoid adverbs
-                  - Avoid abstract statements about "life", "destiny", or "change"
+                  The Narrative Pivot:
+                  Introduce the Dream/Longing as a ghost in the room.
+                  It is not something they are actively working on.
+                  It is what they are thinking about while doing something ordinary.
+                  Contrast the known world with the unknown world.
                   
-                  Structure:
-                  1. Begin with the physical place mentioned in the profile.
-                  2. Show a small repeated habit or ordinary action.
-                  3. Gently introduce the character’s inner state without naming it directly.
-                  4. Mention the character’s name once, naturally within the scene.
-                  5. Hint at longing or uncertainty without urgency.
-                  6. End EXACTLY with:
+                  Literary Style Guidelines:
+                  Vary sentence lengths.
+                  Use grounded, simple words.
+                  Do not use dramatic or exaggerated vocabulary.
+                  Do not explain emotions directly.
+                  Let silence and setting imply feeling.
                   
-                  Her story begins here today.
+                  The Ending:
+                  End EXACTLY with:
+                  "${profile.pronoun} story begins here today."
                   
-                  Important:
-                  - Use ONLY the information provided in the profile.
-                  - Do NOT invent events.
-                  - Do NOT add backstory.
-                  - Do NOT conclude the story.
-                  - Leave emotional space between sentences.
+                  PROFILE DATA:
                   
-                  Profile:
-${profileText}
-                  
+                  Name: ${profile.name}
+                  Pronoun: ${profile.pronoun}
+                  Setting: ${profile.place}
+                  Current Vibe: ${profile.life_phase}
+                  Daily Life Details: ${profile.daily_life}
+                  The Dream/Longing: ${profile.dreams}
                   `
+                  
                 }
               ]
             }

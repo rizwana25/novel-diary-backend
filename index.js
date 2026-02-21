@@ -204,6 +204,16 @@ app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
     entries.forEach((e) => {
       compiledText += e.content.trim() + "\n\n";
     });
+    /* =========================
+   FETCH PROFILE DATA
+========================= */
+const [profileRows] = await db.execute(
+  "SELECT name, pronoun FROM user_profiles WHERE user_uid = ?",
+  [userUid]
+);
+
+const name = profileRows[0]?.name || "She";
+const pronoun = profileRows[0]?.pronoun || "she";
 
     /* =========================
        CALL GEMINI 2.5
@@ -219,23 +229,60 @@ app.post("/api/entries/week/:userUid/enhance", async (req, res) => {
               parts: [
                 {
                   text: `
-Rewrite the following diary entries into a single continuous third-person narrative.
+Objective:
+Transform the following diary entries into a literary novel chapter that feels lived-in, immersive, and emotionally textured — as if it belongs in a printed book.
 
-Voice:
-- Use "she" consistently.
-- Stay fully inside her experience.
-- Do not step outside her perspective.
+Perspective Rules:
+- Write in close third person.
+- Use "${name}" naturally when appropriate.
+- Use "${pronoun}" consistently.
+- Stay fully inside ${pronoun}'s experience.
+- Do not step outside ${pronoun}'s awareness.
+- Do not narrate from above.
 
-Strict Rules:
+Structure:
+
+1. Atmosphere First
+Begin inside a physical environment.
+Start with light, air, sound, temperature, stillness, or space.
+Make the setting feel tangible before the character moves.
+Do not begin with reflection, explanation, or summary.
+
+2. Internal Continuity
+Blend the entries into one continuous narrative.
+Remove diary-like phrasing.
+Avoid listing events.
+Let moments flow into each other naturally, like scenes.
+Use sensory detail instead of explanation.
+
+3. Emotional Temperature
+- When the diary holds sadness, let the prose slow down.
+  Use softer, heavier rhythms.
+- When it holds warmth or happiness, allow the sentences to open and breathe.
+- Do not label emotions.
+  Let them exist through action, silence, and environment.
+
+4. Language Control
+Use simple but poetic language.
+Avoid dramatic clichés.
+Avoid exaggerated metaphors.
+Avoid artificial or overly complex vocabulary.
+Vary sentence lengths for rhythm.
+Let pauses carry meaning.
+
+Restrictions:
 - Do NOT invent events.
-- Do NOT add conversations.
-- Do NOT introduce new people.
-- Do NOT summarize.
+- Do NOT add dialogue.
+- Do NOT introduce new characters.
+- Do NOT exaggerate emotion.
 - Do NOT mention dates or weeks.
+- Do NOT summarize the diary.
+
+The result should feel like reading the middle of a real novel.
 
 Diary Entries:
 ${compiledText}
-                  `
+`
                 }
               ]
             }
@@ -730,7 +777,16 @@ app.get("/api/internal/run-weekly", async (req, res) => {
         entries.forEach(e => {
           compiledText += e.content.trim() + "\n\n";
         });
+       /* =========================
+   FETCH PROFILE DATA
+========================= */
+const [profileRows] = await db.execute(
+  "SELECT name, pronoun FROM user_profiles WHERE user_uid = ?",
+  [userUid]
+);
 
+const name = profileRows[0]?.name || "She";
+const pronoun = profileRows[0]?.pronoun || "she";
         /* =========================
            CALL GEMINI
         ========================= */
@@ -745,12 +801,60 @@ app.get("/api/internal/run-weekly", async (req, res) => {
                   parts: [
                     {
                       text: `
-Rewrite the following diary entries into a continuous third-person narrative.
-Do not invent details. Do not add new characters.
-
-Diary:
-${compiledText}
-`
+                      Objective:
+                      Transform the following diary entries into a literary novel chapter that feels lived-in, immersive, and emotionally textured — as if it belongs in a printed book.
+                      
+                      Perspective Rules:
+                      - Write in close third person.
+                      - Use "${name}" naturally when appropriate.
+                      - Use "${pronoun}" consistently.
+                      - Stay fully inside ${pronoun}'s experience.
+                      - Do not step outside ${pronoun}'s awareness.
+                      - Do not narrate from above.
+                      
+                      Structure:
+                      
+                      1. Atmosphere First
+                      Begin inside a physical environment.
+                      Start with light, air, sound, temperature, stillness, or space.
+                      Make the setting feel tangible before the character moves.
+                      Do not begin with reflection, explanation, or summary.
+                      
+                      2. Internal Continuity
+                      Blend the entries into one continuous narrative.
+                      Remove diary-like phrasing.
+                      Avoid listing events.
+                      Let moments flow into each other naturally, like scenes.
+                      Use sensory detail instead of explanation.
+                      
+                      3. Emotional Temperature
+                      - When the diary holds sadness, let the prose slow down.
+                        Use softer, heavier rhythms.
+                      - When it holds warmth or happiness, allow the sentences to open and breathe.
+                      - Do not label emotions.
+                        Let them exist through action, silence, and environment.
+                      
+                      4. Language Control
+                      Use simple but poetic language.
+                      Avoid dramatic clichés.
+                      Avoid exaggerated metaphors.
+                      Avoid artificial or overly complex vocabulary.
+                      Vary sentence lengths for rhythm.
+                      Let pauses carry meaning.
+                      
+                      Restrictions:
+                      - Do NOT invent events.
+                      - Do NOT add dialogue.
+                      - Do NOT introduce new characters.
+                      - Do NOT exaggerate emotion.
+                      - Do NOT mention dates or weeks.
+                      - Do NOT summarize the diary.
+                      
+                      The result should feel like reading the middle of a real novel.
+                      
+                      Diary Entries:
+                      ${compiledText}
+                      `
                     }
                   ]
                 }

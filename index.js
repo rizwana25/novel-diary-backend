@@ -229,59 +229,63 @@ const pronoun = profileRows[0]?.pronoun || "she";
               parts: [
                 {
                   text: `
-Objective:
-Transform the following diary entries into a literary novel chapter that feels lived-in, immersive, and emotionally textured — as if it belongs in a printed book.
-
-Perspective Rules:
-- Write in close third person.
-- Use "${name}" naturally when appropriate.
-- Use "${pronoun}" consistently.
-- Stay fully inside ${pronoun}'s experience.
-- Do not step outside ${pronoun}'s awareness.
-- Do not narrate from above.
-
-Structure:
-
-1. Atmosphere First
-Begin inside a physical environment.
-Start with light, air, sound, temperature, stillness, or space.
-Make the setting feel tangible before the character moves.
-Do not begin with reflection, explanation, or summary.
-
-2. Internal Continuity
-Blend the entries into one continuous narrative.
-Remove diary-like phrasing.
-Avoid listing events.
-Let moments flow into each other naturally, like scenes.
-Use sensory detail instead of explanation.
-
-3. Emotional Temperature
-- When the diary holds sadness, let the prose slow down.
-  Use softer, heavier rhythms.
-- When it holds warmth or happiness, allow the sentences to open and breathe.
-- Do not label emotions.
-  Let them exist through action, silence, and environment.
-
-4. Language Control
-Use simple but poetic language.
-Avoid dramatic clichés.
-Avoid exaggerated metaphors.
-Avoid artificial or overly complex vocabulary.
-Vary sentence lengths for rhythm.
-Let pauses carry meaning.
-
-Restrictions:
-- Do NOT invent events.
-- Do NOT add dialogue.
-- Do NOT introduce new characters.
-- Do NOT exaggerate emotion.
-- Do NOT mention dates or weeks.
-- Do NOT summarize the diary.
-
-The result should feel like reading the middle of a real novel.
-
-Diary Entries:
-${compiledText}
+                  Objective:
+                  Transform the following diary entries into a continuous novel-style chapter that feels lived-in, emotionally real, and warm.
+                  
+                  The result should read like the middle of a quiet contemporary novel — rich with detail, easy to read, and deeply human.
+                  
+                  Perspective Rules:
+                  - Write in close third person.
+                  - Use "${name}" naturally when appropriate.
+                  - Use "${pronoun}" consistently.
+                  - Stay fully inside ${pronoun}'s experience.
+                  - Show only what ${pronoun} sees, feels, thinks, remembers, or notices.
+                  - Do not step outside ${pronoun}'s awareness.
+                  - Do not explain or judge ${name} from the outside.
+                  - Let ${pronoun}'s contradictions remain.
+                  
+                  Keep the Details:
+                  - Do not remove small events.
+                  - Do not summarize the day.
+                  - Include sensory details (light, air, sounds, smells, textures, physical space, movement).
+                  - Preserve ordinary moments.
+                  - Keep emotional nuances, even subtle ones.
+                  - Nothing important from the diary should be skipped.
+                  
+                  Tone & Language:
+                  - Use simple, natural language.
+                  - Avoid heavy literary vocabulary.
+                  - Avoid dramatic metaphors.
+                  - Avoid sounding academic or overly poetic.
+                  - Avoid cinematic exaggeration.
+                  - Keep the writing emotionally honest and easy to read.
+                  - If a sentence can be simpler, choose simpler.
+                  
+                  Emotional Depth:
+                  - Show emotions through actions, pauses, small physical reactions, and internal thoughts.
+                  - Allow mixed feelings to exist at the same time.
+                  - Do not neatly resolve emotional tension.
+                  - Do not turn the story into a moral lesson.
+                  
+                  Flow & Structure:
+                  - Begin with atmosphere (light, air, room, street, sound, temperature, stillness).
+                  - Blend the entries into one seamless narrative.
+                  - Avoid diary formatting.
+                  - Avoid listing events.
+                  - Let scenes transition naturally and quietly.
+                  
+                  Restrictions:
+                  - Do NOT invent new events.
+                  - Do NOT add new characters.
+                  - Do NOT exaggerate emotion.
+                  - Do NOT dramatize beyond what is present.
+                  - Do NOT moralize or summarize.
+                  
+                  Final Goal:
+                  The chapter should feel like a real person living real days — detailed, grounded, emotionally layered, wholesome, and human.
+                  
+                  Diary Entries:
+                  ${compiledText}
 `
                 }
               ]
@@ -802,55 +806,59 @@ const pronoun = profileRows[0]?.pronoun || "she";
                     {
                       text: `
                       Objective:
-                      Transform the following diary entries into a literary novel chapter that feels lived-in, immersive, and emotionally textured — as if it belongs in a printed book.
+                      Transform the following diary entries into a continuous novel-style chapter that feels lived-in, emotionally real, and warm.
+                      
+                      The result should read like the middle of a quiet contemporary novel — rich with detail, easy to read, and deeply human.
                       
                       Perspective Rules:
                       - Write in close third person.
                       - Use "${name}" naturally when appropriate.
                       - Use "${pronoun}" consistently.
                       - Stay fully inside ${pronoun}'s experience.
+                      - Show only what ${pronoun} sees, feels, thinks, remembers, or notices.
                       - Do not step outside ${pronoun}'s awareness.
-                      - Do not narrate from above.
+                      - Do not explain or judge ${name} from the outside.
+                      - Let ${pronoun}'s contradictions remain.
                       
-                      Structure:
+                      Keep the Details:
+                      - Do not remove small events.
+                      - Do not summarize the day.
+                      - Include sensory details (light, air, sounds, smells, textures, physical space, movement).
+                      - Preserve ordinary moments.
+                      - Keep emotional nuances, even subtle ones.
+                      - Nothing important from the diary should be skipped.
                       
-                      1. Atmosphere First
-                      Begin inside a physical environment.
-                      Start with light, air, sound, temperature, stillness, or space.
-                      Make the setting feel tangible before the character moves.
-                      Do not begin with reflection, explanation, or summary.
+                      Tone & Language:
+                      - Use simple, natural language.
+                      - Avoid heavy literary vocabulary.
+                      - Avoid dramatic metaphors.
+                      - Avoid sounding academic or overly poetic.
+                      - Avoid cinematic exaggeration.
+                      - Keep the writing emotionally honest and easy to read.
+                      - If a sentence can be simpler, choose simpler.
                       
-                      2. Internal Continuity
-                      Blend the entries into one continuous narrative.
-                      Remove diary-like phrasing.
-                      Avoid listing events.
-                      Let moments flow into each other naturally, like scenes.
-                      Use sensory detail instead of explanation.
+                      Emotional Depth:
+                      - Show emotions through actions, pauses, small physical reactions, and internal thoughts.
+                      - Allow mixed feelings to exist at the same time.
+                      - Do not neatly resolve emotional tension.
+                      - Do not turn the story into a moral lesson.
                       
-                      3. Emotional Temperature
-                      - When the diary holds sadness, let the prose slow down.
-                        Use softer, heavier rhythms.
-                      - When it holds warmth or happiness, allow the sentences to open and breathe.
-                      - Do not label emotions.
-                        Let them exist through action, silence, and environment.
-                      
-                      4. Language Control
-                      Use simple but poetic language.
-                      Avoid dramatic clichés.
-                      Avoid exaggerated metaphors.
-                      Avoid artificial or overly complex vocabulary.
-                      Vary sentence lengths for rhythm.
-                      Let pauses carry meaning.
+                      Flow & Structure:
+                      - Begin with atmosphere (light, air, room, street, sound, temperature, stillness).
+                      - Blend the entries into one seamless narrative.
+                      - Avoid diary formatting.
+                      - Avoid listing events.
+                      - Let scenes transition naturally and quietly.
                       
                       Restrictions:
-                      - Do NOT invent events.
-                      - Do NOT add dialogue.
-                      - Do NOT introduce new characters.
+                      - Do NOT invent new events.
+                      - Do NOT add new characters.
                       - Do NOT exaggerate emotion.
-                      - Do NOT mention dates or weeks.
-                      - Do NOT summarize the diary.
+                      - Do NOT dramatize beyond what is present.
+                      - Do NOT moralize or summarize.
                       
-                      The result should feel like reading the middle of a real novel.
+                      Final Goal:
+                      The chapter should feel like a real person living real days — detailed, grounded, emotionally layered, wholesome, and human.
                       
                       Diary Entries:
                       ${compiledText}
